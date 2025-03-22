@@ -1,0 +1,42 @@
+# Normalize line endings for cross-platform compatibility
+* text=auto
+
+# Prevent common binary files from being altered
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.mp4 binary
+*.mp3 binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.exe binary
+
+# Ignore log and cache files
+*.log linguist-generated
+*.cache linguist-generated
+
+# Prevent secrets from being added to Git history
+.env filter=git-secret diff=git-secret merge=git-secret
+.env.* filter=git-secret diff=git-secret merge=git-secret
+public/assets/*.json filter=git-secret diff=git-secret merge=git-secret
+
+# Ignore Composer and NPM dependencies
+vendor/** linguist-vendored
+node_modules/** linguist-vendored
+
+# Ignore compiled files
+storage/** linguist-generated
+bootstrap/cache/** linguist-generated
+public/storage/** linguist-generated
+public/js/*.map linguist-generated
+public/css/*.map linguist-generated
+mix-manifest.json linguist-generated
