@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use DateTime;
 
-use Exception;
+use Exception; 
 use Carbon\Carbon;
 use App\Models\Faq;
 use App\Models\Type;
@@ -372,6 +372,7 @@ class ApiController extends Controller
                 'slug_id' => generateUniqueSlug($request->name, 5),
                 'notification' => 1,
                 'isActive' => 1,
+                'subscription' => 1,
                 'logintype' => 3,
                 'account_type' => $request->account_type,
                 'mobile' => $request->has('mobile') && !empty($request->mobile) ? $request->mobile : null,
@@ -3424,7 +3425,7 @@ class ApiController extends Controller
 
 
         $tempRow = [];
-
+ 
         if (($request->user_id) != "") {
             update_subscription($request->user_id);
 
