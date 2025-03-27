@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::options('{any}', function (Request $request) {
-    return Response::make('CORS OK', 200, [
-        'Access-Control-Allow-Origin' => $request->header('Origin'),
-        'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Allow-Credentials' => 'true',
-    ]);
-})->where('any', '.*');
+// Route::options('{any}', function (Request $request) {
+//     return Response::make('CORS OK', 200, [
+//         'Access-Control-Allow-Origin' => $request->header('Origin'),
+//         'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+//         'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+//         'Access-Control-Allow-Credentials' => 'true',
+//     ]);
+// })->where('any', '.*');
 /*********************************************************************** */
 /** Property */
 Route::post('set_property_total_click', [ApiController::class, 'set_property_total_click']);
