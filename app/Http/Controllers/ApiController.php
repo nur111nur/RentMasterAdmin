@@ -308,6 +308,7 @@ class ApiController extends Controller
 
         // Check if user exists and verify password
         if (!$user || !Hash::check($password, $user->password)) {
+            
             return response()->json([
                 'error' => true,
                 'message' => 'Invalid email or password',
@@ -324,8 +325,7 @@ class ApiController extends Controller
         }
 
         // Generate auth token
-        $token = $user->createToken('token-name')->plainTextToken;
-
+        $token = $user->createToken('token-name');
         // Update FCM Token if provided
         if ($request->has('fcm_id') && !empty($request->fcm_id)) {
             Usertokens::updateOrCreate(
@@ -337,11 +337,128 @@ class ApiController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Login Successful',
-            'token' => $token,
+            'token' => $token->plainTextToken,
             'data' => $user, // Sending full user data
         ], 200);
     }
     // User Register
+    // public function userRegister(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => 'required',
+    //         'email' => 'required|email|unique:customers',
+    //         'password' => 'required|min:6',
+    //         're_password' => 'required|same:password',
+    //         'mobile' => 'nullable|unique:customers',
+    //         'account_type' => 'required|in:seeker,provider',
+    //     ]);
+    //     // dd($request->all());
+
+    //     if ($validator->fails()) {
+    //         ResponseService::validationError($validator->errors()->first());
+    //     }
+
+
+    //     $customerExists = Customer::where(['email' => $request->email, 'logintype' => 3])->exists();
+    //     if ($customerExists) {
+    //         ResponseService::errorResponse("Email Already Exists");
+    //     }
+
+    //     $customerData = $request->except('re_password');
+    //     $customerData = array_merge($customerData, [
+    //         'auth_id' => Str::uuid()->toString(),
+    //         'slug_id' => generateUniqueSlug($request->name, 5),
+    //         'notification' => 1,
+    //         'isActive' => 1,
+    //         'subscription' => 1,
+    //         'logintype' => 3,
+    //         'account_type' => $request->account_type,
+    //         'mobile' => $request->has('mobile') && !empty($request->mobile) ? $request->mobile : null,
+    //     ]);
+
+    //     $customer = Customer::create($customerData);
+    //     $customer->password = Hash::make($request->password);
+    //     $customer->save();
+    //     $token = $customer->createToken('token-name');
+    //     $response['error'] = false;
+    //     $response['message'] = 'User Register Successfully';
+    //     $response['token'] = $token->plainTextToken;
+    //     $response['data'] = $customer;
+
+    //     // ✅ Only Send OTP if Mobile is Provided
+    //     if (!empty($customerData['mobile'])) {
+    //         $existingOtp = NumberOtp::where('number', $customerData['mobile'])->first();
+    //         if ($existingOtp) {
+    //             ResponseService::errorResponse("User Already Exists");
+    //         }
+
+    //         // Generate a new OTP
+    //         $otp = rand(123456, 999999);
+    //         $expireAt = now()->addMinutes(10);
+
+    //         // Update or create OTP entry in the database
+    //         NumberOtp::updateOrCreate(
+    //             ['number' => $customerData['mobile']],
+    //             ['otp' => $otp, 'expire_at' => $expireAt]
+    //         );
+    //     }
+
+    //     /** Register Mail */
+    //     if(!empty($customer->email)){
+    //         Log::info('under Mail');
+    //         $data = array(
+    //             'appName' => env("APP_NAME"),
+    //             'email' => $customer->email
+    //         );
+    //         try {
+    //             // Get Data of email type
+    //             $emailTypeData = HelperService::getEmailTemplatesTypes("welcome_mail");
+
+    //             // Email Template
+    //             $welcomeEmailTemplateData = system_setting($emailTypeData['type']);
+    //             $appName = env("APP_NAME") ?? "eBroker";
+    //             $variables = array(
+    //                 'app_name' => $appName,
+    //                 'user_name' => !empty($request->name) ? $request->name : "$appName User",
+    //                 'email' => $request->email,
+    //             );
+    //             if(empty($welcomeEmailTemplateData)){
+    //                 $welcomeEmailTemplateData = "Welcome to $appName";
+    //             }
+    //             $welcomeEmailTemplate = HelperService::replaceEmailVariables($welcomeEmailTemplateData,$variables);
+
+    //             $data = array(
+    //                 'email_template' => $welcomeEmailTemplate,
+    //                 'email' => $request->email,
+    //                 'title' => $emailTypeData['title'],
+    //             );
+    //             HelperService::sendMail($data);
+    //         } catch (Exception $e) {
+    //             Log::info("Welcome Mail Sending Issue with error :- ".$e->getMessage());
+    //         }
+    //     }
+    //     ResponseService::successResponse(trans("Email Sent Successfully"));
+
+    //     /** Send OTP Mail (Only if Mobile is Provided) */
+    //     // if (!empty($customerData['mobile'])) {
+    //     //     $emailTypeData = HelperService::getEmailTemplatesTypes("verify_mail");
+    //     //     $otpEmailTemplateData = system_setting($emailTypeData['type']);
+    //     //     $variables = ['app_name' => $appName, 'otp' => $otp];
+
+    //     //     if (empty($otpEmailTemplateData)) {
+    //     //         $otpEmailTemplateData = "Your OTP :- " . $otp;
+    //     //     }
+
+    //     //     $otpEmailTemplate = HelperService::replaceEmailVariables($otpEmailTemplateData, $variables);
+    //     //     $data = [
+    //     //         'email_template' => $otpEmailTemplate,
+    //     //         'email' => $request->email,
+    //     //         'title' => $emailTypeData['title'],
+    //     //     ];
+    //     //     HelperService::sendMail($data);
+    //     // }
+    //     return response()->json($response);
+    // }
     public function userRegister(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -352,107 +469,81 @@ class ApiController extends Controller
             'mobile' => 'nullable|unique:customers',
             'account_type' => 'required|in:seeker,provider',
         ]);
-        // dd($request->all());
-
+    
         if ($validator->fails()) {
-            ResponseService::validationError($validator->errors()->first());
+            return ResponseService::validationError($validator->errors()->first());
         }
-
-        try {
-            DB::beginTransaction();
-
-            $customerExists = Customer::where(['email' => $request->email, 'logintype' => 3])->exists();
-            if ($customerExists) {
-                ResponseService::errorResponse("User Already Exists");
+    
+        if (Customer::where(['email' => $request->email, 'logintype' => 3])->exists()) {
+            return ResponseService::errorResponse("Email Already Exists");
+        }
+    
+        $customer = Customer::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'account_type' => $request->account_type,
+            'logintype' => 3,
+            'isActive' => 1,
+            'subscription' => 1,
+            'notification' => 1,
+            'mobile' => $request->has('mobile') ? $request->mobile : null,
+        ]);
+    
+        $customer->update([
+            'auth_id' => Str::uuid()->toString(),
+            'slug_id' => generateUniqueSlug($request->name, 5),
+        ]);
+    
+        $token = $customer->createToken('token-name')->plainTextToken;
+    
+        $response = [
+            'error' => false,
+            'message' => 'User Registered Successfully',
+            'token' => $token,
+            'data' => $customer->only(['id', 'name', 'email', 'account_type']),
+        ];
+    
+        if (!empty($customer->mobile)) {
+            $existingOtp = NumberOtp::where('number', $customer->mobile)->first();
+            if ($existingOtp) {
+                return ResponseService::errorResponse("User Already Exists");
             }
-
-            $customerData = $request->except('re_password');
-            $customerData = array_merge($customerData, [
-                'auth_id' => Str::uuid()->toString(),
-                'slug_id' => generateUniqueSlug($request->name, 5),
-                'notification' => 1,
-                'isActive' => 1,
-                'subscription' => 1,
-                'logintype' => 3,
-                'account_type' => $request->account_type,
-                'mobile' => $request->has('mobile') && !empty($request->mobile) ? $request->mobile : null,
-            ]);
-
-            $customer = Customer::create($customerData);
-            $customer->password = Hash::make($request->password);
-            $customer->save();
-
-            // ✅ Only Send OTP if Mobile is Provided
-            if (!empty($customerData['mobile'])) {
-                $existingOtp = NumberOtp::where('number', $customerData['mobile'])->first();
-                if ($existingOtp) {
-                    ResponseService::errorResponse("User Already Exists");
-                }
-
-                // Generate a new OTP
-                $otp = rand(123456, 999999);
-                $expireAt = now()->addMinutes(10);
-
-                // Update or create OTP entry in the database
-                NumberOtp::updateOrCreate(
-                    ['number' => $customerData['mobile']],
-                    ['otp' => $otp, 'expire_at' => $expireAt]
-                );
-            }
-
-            /** Register Mail */
-            $emailTypeData = HelperService::getEmailTemplatesTypes("welcome_mail");
-            $welcomeEmailTemplateData = system_setting($emailTypeData['type']);
-            $appName = env("APP_NAME", "eBroker");
-            $variables = [
-                'app_name' => $appName,
-                'user_name' => !empty($request->name) ? $request->name : "$appName User",
-                'email' => $request->email,
-            ];
-            if (empty($welcomeEmailTemplateData)) {
-                $welcomeEmailTemplateData = "Welcome to $appName";
-            }
-            $welcomeEmailTemplate = HelperService::replaceEmailVariables($welcomeEmailTemplateData, $variables);
-
-            $data = [
-                'email_template' => $welcomeEmailTemplate,
-                'email' => $request->email,
-                'title' => $emailTypeData['title'],
-            ];
-            HelperService::sendMail($data);
-
-            /** Send OTP Mail (Only if Mobile is Provided) */
-            if (!empty($customerData['mobile'])) {
-                $emailTypeData = HelperService::getEmailTemplatesTypes("verify_mail");
-                $otpEmailTemplateData = system_setting($emailTypeData['type']);
-                $variables = ['app_name' => $appName, 'otp' => $otp];
-
-                if (empty($otpEmailTemplateData)) {
-                    $otpEmailTemplateData = "Your OTP :- " . $otp;
-                }
-
-                $otpEmailTemplate = HelperService::replaceEmailVariables($otpEmailTemplateData, $variables);
-                $data = [
-                    'email_template' => $otpEmailTemplate,
+    
+            NumberOtp::updateOrCreate(
+                ['number' => $customer->mobile],
+                ['otp' => rand(123456, 999999), 'expire_at' => now()->addMinutes(10)]
+            );
+        }
+    
+        // **Register Mail Handling**
+        if (!empty($customer->email)) {
+            Log::info('Sending Welcome Email');
+    
+            try {
+                $emailTypeData = HelperService::getEmailTemplatesTypes("welcome_mail");
+                $templateData = system_setting($emailTypeData['type']) ?? "Welcome to our platform!";
+                $variables = [
+                    'app_name' => env("APP_NAME", "eBroker"),
+                    'user_name' => $request->name,
+                    'email' => $request->email,
+                ];
+    
+                $emailContent = HelperService::replaceEmailVariables($templateData, $variables);
+                $emailData = [
+                    'email_template' => $emailContent,
                     'email' => $request->email,
                     'title' => $emailTypeData['title'],
                 ];
-                HelperService::sendMail($data);
-            }
-
-            DB::commit();
-            ResponseService::successResponse('User Registered Successfully');
-        } catch (Exception $e) {
-            DB::rollback();
-
-            if (Str::contains($e->getMessage(), ['Failed', 'Mail', 'Mailer', 'MailManager', "Connection could not be established"])) {
-                ResponseService::errorResponse("There is an issue with mail configuration, kindly contact admin.");
-            } else {
-                dd($e->getMessage());
+                HelperService::sendMail($emailData);
+            } catch (Exception $e) {
+                Log::error("Failed to send Welcome Email: " . $e->getMessage());
             }
         }
+    
+        return response()->json($response);
     }
-
+    
 
     //* START :: get_slider   *//
     public function getSlider(Request $request)
@@ -4628,7 +4719,6 @@ class ApiController extends Controller
 
             // Query the Types to Settings Table to get its data
             $result =  Setting::select('type', 'data')->whereIn('type',$types)->get();
-
             // Check the result data is not empty
             if(collect($result)->isNotEmpty()){
                 $settingsData = array();
